@@ -4,14 +4,16 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from src.flatimagedataset import FlatImageDataset
 
 import torch
-from torch import device
+# from torch import device
 from torch.utils.data import DataLoader
+
+device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')  
 
 
 
 
 def extract_clip_embeddings(folder_or_loader, model, preprocess=None,
-                             batch_size=64, is_loader=False):
+                             batch_size=64, is_loader=False, device=device):
     """Extract L2-normalised CLIP embeddings from a folder or DataLoader."""
     model.eval()
     all_embs, all_meta = [], []
@@ -30,3 +32,5 @@ def extract_clip_embeddings(folder_or_loader, model, preprocess=None,
             all_meta.extend(meta if isinstance(meta[0], str) else meta.tolist())
 
     return torch.cat(all_embs), all_meta
+
+
