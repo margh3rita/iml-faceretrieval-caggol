@@ -1,7 +1,7 @@
 import sys
 import os
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from src.flatimagedataset import FlatImageDataset
+from src.datasets import FlatImageDataset
 
 import torch
 # from torch import device

@@ -1,7 +1,7 @@
 import sys
 import os
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from src.flatimagedataset import FlatImageDataset
+from src.datasets import FlatImageDataset
 from src.extract_clip_embeddings import extract_clip_embeddings
 
 import random
@@ -11,6 +11,16 @@ from torch.utils.data import DataLoader
 from PIL import Image
 
 import matplotlib.pyplot as plt
+
+def evaluate_retrieval(clip_model, loader, device):
+    embs, labels = extract_clip_embeddings(loader, clip_model, is_loader=True)
+    sim = torch.mm(embs, embs.t())
+    sim.fill_diagonal_(-1)
+    labels_t      = torch.tensor(labels)
+    top1_acc      = (labels_t[sim.argmax(dim=1)] == labels_t).float().mean().item()
+    top10_correct = (labels_t[sim.topk(10, dim=1).indices] == labels_t.unsqueeze(1)).any(dim=1)
+    top10_acc     = top10_correct.float().mean().item()
+    return top1_acc, top10_acc
 
 
 def visualise_retrieval(query_dir, gallery_dir, model, preprocess,
@@ -46,3 +56,4 @@ def visualise_retrieval(query_dir, gallery_dir, model, preprocess,
     plt.suptitle('Query → Top-K Retrieved Gallery Images', fontsize=12)
     plt.tight_layout()
     plt.show()
+
