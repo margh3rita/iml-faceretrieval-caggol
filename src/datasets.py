@@ -5,8 +5,8 @@ from PIL import Image
 
 import torchvision.transforms as T
 
-class LFWIdentityDataset(Dataset):
-    """Loads LFW faces grouped by identity for ArcFace training."""
+class compIdentityDataset(Dataset):
+    """Loads competition images grouped by identity for ArcFace training."""
     def __init__(self, root, transform, min_images=2):
         self.transform = transform
         label_to_paths  = defaultdict(list)
@@ -26,7 +26,7 @@ class LFWIdentityDataset(Dataset):
                            for identity, paths in kept.items()
                            for path in paths]
         self.num_classes = len(kept)
-        print(f'LFWDataset: {self.num_classes} identities, {len(self.samples)} images')
+        print(f'compIdentityDataset: {self.num_classes} identities, {len(self.samples)} images')
 
     def __len__(self):
         return len(self.samples)

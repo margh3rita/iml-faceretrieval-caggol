@@ -9,8 +9,6 @@ from src.extract_clip_embeddings import extract_clip_embeddings
 import torch
 
 
-
-
 def generate_submission(query_dir, gallery_dir, model, preprocess, top_k=10):
     """Full retrieval pipeline: embed → cosine similarity → rank → dict."""
     print('Extracting query embeddings...')
