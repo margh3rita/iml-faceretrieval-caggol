@@ -13,7 +13,7 @@ device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 
 def extract_clip_embeddings(folder_or_loader, model, preprocess=None,
-                             batch_size=64, is_loader=False, device=device):
+                            batch_size=64, is_loader=False):
     """Extract L2-normalised CLIP embeddings from a folder or DataLoader."""
     model.eval()
     all_embs, all_meta = [], []

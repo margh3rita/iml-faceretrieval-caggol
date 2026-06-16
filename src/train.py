@@ -4,6 +4,8 @@ def train_one_epoch(clip_model, arcface_head, loader, optimizer, device, epoch):
     clip_model.train()
     arcface_head.train()
     total_loss = 0.0
+    batch_losses = []
+    
 
     for batch_idx, (imgs, labels) in enumerate(loader):
         imgs   = imgs.to(device)
@@ -28,7 +30,10 @@ def train_one_epoch(clip_model, arcface_head, loader, optimizer, device, epoch):
         torch.nn.utils.clip_grad_norm_(
             list(clip_model.parameters()) + list(arcface_head.parameters()), 1.0)
         optimizer.step()
-        total_loss += loss.item()
+
+        loss_val = loss.item()
+        total_loss   += loss_val
+        batch_losses.append(loss_val)
 
         if (batch_idx + 1) % 20 == 0:
             print(f'  Epoch {epoch} | Batch {batch_idx+1}/{len(loader)} | Loss: {loss.item():.4f}')
