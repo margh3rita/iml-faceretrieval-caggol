@@ -61,3 +61,57 @@ def visualise_retrieval(query_dir, gallery_dir, model, preprocess,
     plt.tight_layout()
     plt.show()
 
+
+def visualise_worst_retrievals(clip_model, val_loader, n=5):
+
+    clip_model.eval()
+    embs, labels = extract_clip_embeddings(val_loader, clip_model, is_loader=True)
+    sim = torch.mm(embs, embs.t())
+    sim.fill_diagonal_(-1)
+
+    labels_t    = torch.tensor(labels)
+    top1_idx    = sim.argmax(dim=1)
+    top1_sim    = sim.max(dim=1).values
+    top1_labels = labels_t[top1_idx]
+    correct     = (top1_labels == labels_t)
+
+    # worst = mistaken identities with highest similarities (where the model is the most confidently wrong)
+    wrong_mask  = ~correct
+    wrong_sims  = top1_sim.clone()
+    wrong_sims[correct] = -999  # exclude correct ones
+    worst_idx   = wrong_sims.topk(n).indices
+
+    all_imgs, all_labels = [], []
+    for imgs, lbls in val_loader:
+        all_imgs.append(imgs)
+        all_labels.extend(lbls.tolist())
+    all_imgs = torch.cat(all_imgs, dim=0)
+
+    # Plot
+    fig, axes = plt.subplots(n, 2, figsize=(6, n * 3))
+    for row, q_idx in enumerate(worst_idx):
+        q_idx    = q_idx.item()
+        r_idx    = top1_idx[q_idx].item()
+        sim_val  = top1_sim[q_idx].item()
+        q_label  = labels_t[q_idx].item()
+        r_label  = labels_t[r_idx].item()
+
+        def to_img(t):
+            t = t.cpu().numpy().transpose(1, 2, 0)
+            t = (t - t.min()) / (t.max() - t.min())
+            return t
+
+        axes[row, 0].imshow(to_img(all_imgs[q_idx]))
+        axes[row, 0].set_title(f'Query  (id={q_label})')
+        axes[row, 0].axis('off')
+
+        axes[row, 1].imshow(to_img(all_imgs[r_idx]))
+        axes[row, 1].set_title(f'Top-1  (id={r_label}) | sim={sim_val:.3f}', color='red')
+        axes[row, 1].axis('off')
+
+    plt.suptitle('Peggiori predizioni (errate con similarità più alta)', fontsize=12)
+    plt.tight_layout()
+    plt.savefig('worst_retrievals.png')
+    plt.show()
+
+
