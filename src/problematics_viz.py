@@ -139,3 +139,75 @@ def plot_confusion_identities(
     else:
         plt.show()
     plt.close()
+
+
+
+
+
+    # The necessary imports (torch, clip, FaceGallery, EmbeddingExtractor, RetrievalEvaluator, plot_worst_retrievals, plot_confusion_identities) are already handled by previous cells or are globally available.
+
+# DEVICE and other global variables (QUERY_DIR, GALLERY_DIR) are already defined in previous cells.
+# DEVICE is available as 'device'
+# QUERY_DIR is available as '/content/celebrity_retrieval/test/query'
+# GALLERY_DIR is available as '/content/celebrity_retrieval/test/gallery'
+# CKPT_PATH is available as './celebrity_retrieval/best_model.pth'
+
+# 1. Load model and checkpoint
+# The clip_model and clip_preprocess are already loaded in a previous cell.
+# arcface_head is also already instantiated.
+
+print(f"Loading checkpoint from {CKPT_PATH}")
+ckpt = torch.load(CKPT_PATH, map_location=device)
+clip_model.load_state_dict(ckpt["clip_state"])
+clip_model.eval()
+
+# Load ArcFace head state if available in the checkpoint
+if "head_state" in ckpt:
+    arcface_head.load_state_dict(ckpt["head_state"])
+    arcface_head.eval()
+else:
+    print("Warning: 'head_state' not found in checkpoint. ArcFace head will not be loaded from checkpoint.")
+
+print(f'Loaded checkpoint from epoch {ckpt["epoch"]} (Top-1 = {ckpt["top1"]*100:.2f}%)')
+
+# 2. Load dataset
+# Changed nested=True to nested=False to match the likely flat structure of the test data
+query_gal   = FaceGallery(QUERY_DIR,   nested=False)
+index_gal   = FaceGallery(GALLERY_DIR, nested=False)
+
+# 3. Extract embedding
+extractor = EmbeddingExtractor(clip_model, clip_preprocess, device)
+q_emb = extractor.extract(query_gal, arcface_head=arcface_head)
+i_emb = extractor.extract(index_gal, arcface_head=arcface_head)
+
+# 4. Evaluate
+evaluator = RetrievalEvaluator(query_gal, index_gal, q_emb, i_emb)
+results   = evaluator.run(top_k=20, exclude_self=True)
+metrics   = evaluator.global_metrics(results)
+
+print("\n── global metrics ──────────────────")
+for k, v in metrics.items():
+    print(f"  {k:8s}  {v:.4f}")
+
+# --- Inserting labels demonstration ---
+print("\n── Sample Labels from Results ──────────────────")
+for i, res in enumerate(results[:3]): # Print labels for the first 3 results
+    print(f"Query {i+1}:")
+    print(f"  Query ID: {res.query_id}")
+    print(f"  Top-5 Retrieved IDs: {res.top_k_ids[:5]}")
+    print(f"  Rank of Best Match: {res.rank_of_best}")
+# ──────────────────────────────────────
+
+# 5. Visualize
+plot_worst_retrievals(
+    results,
+    n_queries   = 12,   # the 12 most problematic queries
+    n_retrieved = 8,
+    save_path   = "worst_retrievals.png"
+)
+
+plot_confusion_identities(
+    results,
+    top_n_confused = 20,
+    save_path       = "confusion_matrix.png"
+)
