@@ -23,12 +23,15 @@ def extract_clip_embeddings(folder_or_loader, model, preprocess=None,
 
     with torch.no_grad():
         for imgs, meta in loader:
+            # ideally moves imgs to gpu
             imgs = imgs.to(device)
+            # model-specific visual embedding extraction
             embs = model.encode_image(imgs).float()
+            # L2 norm so all embeddings lie on the same hypersphere
             embs = embs / embs.norm(dim=-1, keepdim=True)
             all_embs.append(embs.cpu())
             all_meta.extend(meta if isinstance(meta[0], str) else meta.tolist())
-
+    # returns a tensor with all the extracted embeddings and the key to understand which is which
     return torch.cat(all_embs), all_meta
 
 
