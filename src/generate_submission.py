@@ -5,36 +5,38 @@ import os
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from src.extract_clip_embeddings import extract_clip_embeddings
 
-
 import torch
+
+import random
+import matplotlib.pyplot as plt
+import PIL.Image as PILImage
 
 
 def generate_submission(query_dir, gallery_dir, model, preprocess, top_k=10):
     """Full retrieval pipeline: embed → cosine similarity → rank → dict."""
     print('Extracting query embeddings...')
+    # embed query files
     q_embs, q_names = extract_clip_embeddings(query_dir, model, preprocess)
     print('Extracting gallery embeddings...')
+    # embed gallery files
     g_embs, g_names = extract_clip_embeddings(gallery_dir, model, preprocess)
 
+    # cosine similarity matrix (embs are already L2 norm)
     sim = torch.mm(q_embs, g_embs.t())
 
     res = {}
     for i, qname in enumerate(q_names):
         _, top_idx = torch.topk(sim[i], k=top_k)
         res[qname]  = [g_names[j] for j in top_idx.tolist()]
+    # returns topk most similar gallery imagesin a dict
     return res
-
-    import os
-import random
-import matplotlib.pyplot as plt
-import PIL.Image as PILImage
 
 def visualise_test_submission(query_dir, gallery_dir, submission_dict, num_queries=3, top_k=5):
     """
     Visualises submission dictionary mapping by looking up actual files
     inside the final query_dir and gallery_dir paths.
     """
-    # Pick a few sample queries from the submission dictionary keys
+    # Pick a num_queries random queries from the submission dictionary keys
     q_names = list(submission_dict.keys())
     if not q_names:
         print("Submission dictionary is empty! Run the generation block first.")
