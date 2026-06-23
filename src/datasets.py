@@ -11,18 +11,21 @@ class TrainDataset(Dataset):
         self.preprocess = preprocess
         label_to_paths  = defaultdict(list)
 
+        # scan folders structure
         for identity in os.listdir(root):
             folder = os.path.join(root, identity)
             if not os.path.isdir(folder):
                 continue
+            # create labels list
             for img_file in os.listdir(folder):
                 if img_file.lower().endswith(('.jpg', '.jpeg', '.png')):
                     label_to_paths[identity].append(
                         os.path.join(folder, img_file))
 
-        # Keep only identities with enough images
+        # filter out the ids with less than min_images files
         kept            = {k: v for k, v in label_to_paths.items()
                            if len(v) >= min_images}
+        # identity to integer in alphabetic order
         self.label_map  = {name: idx for idx, name in enumerate(sorted(kept))}
         self.samples    = [(path, self.label_map[identity])
                            for identity, paths in kept.items()
@@ -36,17 +39,18 @@ class TrainDataset(Dataset):
     def __getitem__(self, idx):
         path, label = self.samples[idx]
 
-        # FIXED HERE: Explicitly calling PILImage instead of raw Image
+        # to avoid collisions with torchvision.transform
         img = PILImage.open(path).convert('RGB')
         return self.preprocess(img), label
 
 
-# augmentation pipeline
+
 class SubsetWithTransform(Subset):
+    """Allows to apply different transforms to the subset, e.g. data augmentation"""
     def __init__(self, subset, transform):
         super().__init__(subset.dataset, subset.indices)
         self.transform = transform
-
+    # overrides getitem to apply augm
     def __getitem__(self, idx):
         path, label = self.dataset.samples[self.indices[idx]]
         img = PILImage.open(path).convert('RGB')
@@ -73,6 +77,7 @@ class FlatImageDataset(Dataset):
         img  = PILImage.open(path).convert('RGB')
         if self.preprocess:
             img = self.preprocess(img)
+        # returns filename because there is no ground truth for inference
         return img, self.filenames[idx]
 
 
