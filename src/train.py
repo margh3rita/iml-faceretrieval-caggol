@@ -31,8 +31,9 @@ def train_one_epoch(clip_model, arcface_head, loader, optimizer, device, epoch):
         # backward pass in float16 and then convert grad to float32
         scaler.scale(loss).backward()
         scaler.unscale_(optimizer)
+        # grad clipping: try to avoid exploding gradients during backprop
         torch.nn.utils.clip_grad_norm_(
-            list(clip_model.parameters()) + list(arcface_head.parameters()), 1.0)
+            list(clip_model.parameters()) + list(arcface_head.parameters()), 1.0)    #scale all grad.s down if above 1.0
         scaler.step(optimizer)
         scaler.update()
 
