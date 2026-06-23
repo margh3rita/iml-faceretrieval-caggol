@@ -13,6 +13,7 @@ device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 def extract_clip_embeddings(folder_or_loader, model, preprocess=None,
                             batch_size=64, is_loader=False):
     """Extract L2-normalised CLIP embeddings from a folder or DataLoader."""
+    # sets model to eval (rather than train, this is used in inference)
     model.eval()
     all_embs, all_meta = [], []
 
@@ -21,6 +22,7 @@ def extract_clip_embeddings(folder_or_loader, model, preprocess=None,
         batch_size=batch_size, num_workers=2, pin_memory=True
     )
 
+    # no gradient computation to save memory
     with torch.no_grad():
         for imgs, meta in loader:
             # ideally moves imgs to gpu
