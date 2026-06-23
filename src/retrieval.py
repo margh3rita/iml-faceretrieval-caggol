@@ -13,11 +13,17 @@ import PIL.Image as PILImage
 import matplotlib.pyplot as plt
 
 def evaluate_retrieval(clip_model, loader, device):
+    """Retrieval evaluation on the validation split"""
+    # extracts embeddings and labels
     embs, labels = extract_clip_embeddings(loader, clip_model, is_loader=True)
+    # builds cosine similarity matrix
     sim = torch.mm(embs, embs.t())
+    # setting self-similarity so imgs don't self-retrieve
     sim.fill_diagonal_(-1)
     labels_t      = torch.tensor(labels)
+    # checks if single nearest neighb has the same label
     top1_acc      = (labels_t[sim.argmax(dim=1)] == labels_t).float().mean().item()
+    # checks if any of the 10 nearest neighb have the same label
     top10_correct = (labels_t[sim.topk(10, dim=1).indices] == labels_t.unsqueeze(1)).any(dim=1)
     top10_acc     = top10_correct.float().mean().item()
     return top1_acc, top10_acc
@@ -43,14 +49,14 @@ def visualise_retrieval(query_dir, gallery_dir, model, preprocess,
     for row, q_idx in enumerate(q_sample):
         _, top_idx = torch.topk(sim[q_idx], k=top_k)
 
-        # FIXED HERE: Changed Image.open to PILImage.open
+        # FIXED HERE: Changed Image.open to PILImage.open to avoid conflicts
         q_img = PILImage.open(os.path.join(query_dir, q_names[q_idx])).convert('RGB')
         axes[row][0].imshow(q_img)
         axes[row][0].set_title(f'QUERY\n{q_names[q_idx][:15]}', fontsize=8)
         axes[row][0].axis('off')
 
         for col, g_idx in enumerate(top_idx.tolist()):
-            # FIXED HERE: Changed Image.open to PILImage.open
+            # FIXED HERE: Changed Image.open to PILImage.open to avoid conflicts
             g_img = PILImage.open(os.path.join(gallery_dir, g_names[g_idx])).convert('RGB')
             score = sim[q_idx][g_idx].item()
             axes[row][col+1].imshow(g_img)
