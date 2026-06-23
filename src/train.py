@@ -17,6 +17,7 @@ def train_one_epoch(clip_model, arcface_head, loader, optimizer, device, epoch):
         # forward pass in float16 where possible
         with autocast():
             # extract and L2-normalise embeddings
+            # TODO implement extract_clip_embeddings here (refactoring no_grad to false or there would be no learning)
             embeddings = clip_model.encode_image(imgs).float()
             embeddings = embeddings / embeddings.norm(dim=-1, keepdim=True)
             # NaN check: skip batch if invalid values
@@ -37,6 +38,7 @@ def train_one_epoch(clip_model, arcface_head, loader, optimizer, device, epoch):
         scaler.step(optimizer)
         scaler.update()
 
+        # update total loss to later get the avg
         loss_val = loss.item()
         total_loss   += loss_val
         # append loss val to later plot
